@@ -54,6 +54,7 @@
 #define PERIOD (65535)
 
 /********************** internal data declaration ****************************/
+uint16_t max_read_adc_value = STEP;
 
 /********************** internal functions declaration ***********************/
 void setPWM(TIM_HandleTypeDef timer,
@@ -82,24 +83,22 @@ void task_pwm_update(void *parameters)
 {
 
 	static uint16_t period=PERIOD;
-	static int16_t step = STEP;
+//	static int16_t step = STEP;
 
 	shared_data_type *shared_data = (shared_data_type *) parameters;
+
+	uint16_t intensity_luminosity = 0;
+
+	if(max_read_adc_value < shared_data->adc_value){
+		max_read_adc_value = shared_data->adc_value;
+	}
 
 	if ( shared_data->adc_end_of_conversion ) {
 		shared_data->adc_end_of_conversion = false;
 		setPWM(htim3, TIM_CHANNEL_1, period, shared_data->pwm_active);
-		if ( step>0 ) {
-			if ( period-step<=shared_data->pwm_active ) {
-				step = step * -1;
-			}
-		}
-		else {
-			if ( abs(step)>=shared_data->pwm_active ) {
-				step = step * -1;
-			}
-		}
-		shared_data->pwm_active = shared_data->pwm_active + step;
+		intensity_luminosity = shared_data->adc_value * period / max_read_adc_value;
+
+		shared_data->pwm_active = intensity_luminosity;
 	}
 }
 
